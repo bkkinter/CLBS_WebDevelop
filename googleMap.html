@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CLBS Test Web Developer</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+      li { 
+        cursor: pointer; 
+        cursor: hand; 
+      }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZ1BCe4Q7YL1nCa_ovtet4Bjn52tT20T8&libraries=places"></script>
+    <script>
+    var mapObject;
+    var markers = [];
+    var inpLatitude,inpLongitude;
+    var service;
+    var range;
+
+function initMap() {
+  var defaultLocation = {lat: 18.8105327, lng: 98.9534734};
+  var defaultRange = 500;
+  mapObject = new google.maps.Map(document.getElementById('map'), {
+    center: defaultLocation,
+    zoom: 17
+  });
+  $('#latitude').val(defaultLocation.lat);
+  $('#longitude').val(defaultLocation.lng);
+  $('#range').val(defaultRange);
+  search(defaultLocation.lat,defaultLocation.lng,defaultRange);
+}
+
+function search(latitude,longitude,rangeSearch){
+  range = rangeSearch;
+  inpLatitude = latitude;
+  inpLongitude = longitude;
+  service = new google.maps.places.PlacesService(mapObject);
+  service.nearbySearch({
+    location:  new google.maps.LatLng(latitude,longitude),
+    radius: range
+  }, processResults);
+}
+
+function processResults(places, status, pagination) {
+  if (status == google.maps.places.PlacesServiceStatus.OK) {
+    var bounds = new google.maps.LatLngBounds();
+    var placesList = document.getElementById('places');
+    InputMarker(); 
+    places = sortByKey(places, 'name');
+    for (var i = 0, place; place = places[i]; i++) {
+      if(calDistance(place.geometry.location.lat(),place.geometry.location.lng()) < (range/1000)){
+        placesList.innerHTML += '<li onclick=\'addMarker(\"'+place.name+'\",'+place.geometry.location.lat()+','+place.geometry.location.lng()+')\'>' + place.name + '</li>';
+      }
+    }
+  }
+}
+
+function sortByKey(array, key) {
+    return array.sort(function(a, b) {
+        var x = a[key]; var y = b[key];
+        return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+    });
+}
+
+function addMarker(name,latitude,longitude){
+  var distance = calDistance(latitude,longitude);
+  
+  deleteMarker(); 
+  InputMarker(); 
+  var infowindow = new google.maps.InfoWindow({
+    content: name+" : "+parseFloat(distance).toFixed(2)
+  });
+
+  var marker = new google.maps.Marker({
+    position: new google.maps.LatLng(latitude,longitude),
+    map: mapObject
+  });
+  marker.addListener('click', function() {
+    infowindow.open(map, marker);
+  });
+  markers.push(marker);
+}
+
+function InputMarker(){
+  var infowindow = new google.maps.InfoWindow({
+    content: 'Input Location'
+  });
+  var marker = new google.maps.Marker({
+    position: new google.maps.LatLng(inpLatitude,inpLongitude),
+    map: mapObject
+  });
+  marker.addListener('click', function() {
+    infowindow.open(map, marker);
+  });
+  markers.push(marker);
+}
+
+function deleteMarker() {
+  if (markers) {
+    for (i in markers)
+        markers[i].setMap(null);
+  }markers.length = 0;
+}
+
+function calDistance(latitude,longitude){
+    var lat1, lon1, lat2, lon2, dlat, dlon, a, c, dk, km;
+    var Rk = 6373;
+    lat1 = deg2rad(inpLatitude);
+    lon1 = deg2rad(inpLongitude);
+    lat2 = deg2rad(latitude);
+    lon2 = deg2rad(longitude);
+
+    dlat = lat2 - lat1;
+    dlon = lon2 - lon1;
+    a  = Math.pow(Math.sin(dlat/2),2) + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(dlon/2),2);
+    c  = 2 * Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); // great circle distance in radians
+    
+    dk = c * Rk; // great circle distance in km
+    return Math.round( dk * 1000) / 1000;
+}
+
+function deg2rad(deg) {
+    return deg * Math.PI/180; // radians = degrees * pi/180
+}
+
+$(document).ready(function(){
+  $('#Search').click(function(){
+      $('#places').html('');
+      search($('#latitude').val(),$('#longitude').val(),$('#range').val());
+  });
+});
+  </script>
+  </head>
+  <body onload='initMap()'>
+        
+      <div class="container-fluid">  
+        <div class="row">
+          <div class="col-lg-8 " style="height: 70%;border-color: black;">
+            <div id="map" style="width:800px;height:500px"></div>
+          </div>
+          <div class="col-lg-4" style="overflow: scroll;">
+            <div  style="width: 100%">
+              listView
+              <ul id="listView"></ul>
+            </div>
+              <ul id="places"></ul>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-lg-8 " style="height: 70%;border-color: black;">
+            Latitude  <input type="number" id='latitude'>
+            Longitude <input type="number" id="longitude">
+            Range<input type="number" id="range" min="5" max="50000" step="1">
+            <input type="Submit" id="Search" value="Search">
+          </div>
+          <div class="col-lg-4">
+            <div style="width: 100%"></div>
+              How To Use<br>
+                1. Input Latitude,Longitude And Range And Search<br>
+                2. Click @ ListView<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- When Click Marker Will Show In Map
+
+          </div>
+        </div>
+      </div>
+  </body>
+</html>
